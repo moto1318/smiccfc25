@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Elite Stats Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --year-2025-bg: #eff6ff;
+            --year-2025-accent: #2563eb;
+            --year-2025-border: #dbeafe;
+            --year-2025-footer: #dbeafe;
+            --year-2024-bg: #fff7ed;
+            --year-2024-accent: #ea580c;
+            --year-2024-border: #ffedd5;
+            --year-2024-footer: #fed7aa;
+            --text-main: #1e293b;
+            --text-sub: #64748b;
+        }
+
+        body {
+            font-family: -apple-system, system-ui, sans-serif;
+            background-color: #f8fafc;
+            margin: 0;
+            padding: 0;
+            color: var(--text-main);
+        }
+
+        .container { max-width: 600px; margin: auto; padding: 12px; padding-bottom: 80px; }
+
+        /* Navigation */
+        .nav-tabs {
+            display: flex;
+            background: #fff;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        .nav-tab {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: var(--text-sub);
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+        }
+        .nav-tab.active { color: var(--year-2025-accent); border-bottom-color: var(--year-2025-accent); }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* Player Grid */
+        .player-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+            margin: 12px 0;
+        }
+        .player-btn {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            padding: 8px 2px;
+            border-radius: 8px;
+            font-size: 0.65rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .player-btn.active { background: var(--year-2025-accent); color: #fff; border-color: var(--year-2025-accent); }
+
+        /* Unified Card Layout */
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .stat-card {
+            border-radius: 12px;
+            padding: 0;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid transparent;
+        }
+
+        .card-2025 { background: var(--year-2025-bg); border-color: var(--year-2025-border); }
+        .card-2024 { background: var(--year-2024-bg); border-color: var(--year-2024-border); }
+
+        .card-header {
+            padding: 10px 12px 5px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.75rem;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .badge { color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; }
+        .badge-2025 { background: var(--year-2025-accent); }
+        .badge-2024 { background: var(--year-2024-accent); }
+
+        /* Content height synchronization */
+        .card-body {
+            padding: 5px 12px;
+            height: 120px; /* Fixed height for all card content */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .inner-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+        .stat-item { background: rgba(255,255,255,0.7); padding: 8px 2px; border-radius: 6px; text-align: center; }
+        .stat-label { font-size: 0.6rem; color: var(--text-sub); display: block; }
+        .stat-value { font-size: 0.9rem; font-weight: 800; }
+
+        .radar-box { width: 100%; height: 100%; }
+
+        .card-footer {
+            padding: 6px;
+            text-align: center;
+            font-size: 0.65rem;
+            font-weight: 700;
+            color: var(--text-sub);
+        }
+        .footer-2025 { background: var(--year-2025-footer); }
+        .footer-2024 { background: var(--year-2024-footer); }
+
+        /* Leaderboard */
+        .cat-group { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-bottom: 15px; }
+        .cat-btn { padding: 10px 2px; border: 1px solid #e2e8f0; background: #fff; border-radius: 8px; font-size: 0.7rem; font-weight: 700; cursor: pointer;}
+        .cat-btn.active { background: var(--year-2025-accent); color: #fff; }
+
+        .leader-table { width: 100%; border-collapse: collapse; font-size: 0.7rem; background: #fff; border-radius: 8px; }
+        .leader-table th { padding: 6px; background: #f1f5f9; text-align: left; }
+        .leader-table td { padding: 8px 4px; border-bottom: 1px solid #f8fafc; }
+        .lb-title { font-size: 0.7rem; font-weight: 800; text-align: center; margin-bottom: 6px; text-transform: uppercase; }
+
+    </style>
+</head>
+<body>
+
+<div class="nav-tabs">
+    <div class="nav-tab active" onclick="switchTab('profile')">Profiles</div>
+    <div class="nav-tab" onclick="switchTab('leaderboard')">Leaderboards</div>
+</div>
+
+<div class="container">
+    
+    <div id="profile" class="tab-content active">
+        <h2 id="playerNameHeader" style="font-size: 1.2rem; margin: 10px 0 5px 4px;">-</h2>
+        <div class="player-grid" id="playerGrid"></div>
+
+        <div class="comparison-grid">
+            <div class="stat-card card-2025">
+                <div class="card-header"><span>2025 Totals</span><span class="badge badge-2025" id="pts25-badge-t">0.0</span></div>
+                <div class="card-body"><div class="inner-grid" id="totals25-box"></div></div>
+                <div class="card-footer footer-2025" id="gw25-footer-t">GWs: -</div>
+            </div>
+            <div class="stat-card card-2024">
+                <div class="card-header"><span>2024 Totals</span><span class="badge badge-2024" id="pts24-badge-t">0.0</span></div>
+                <div class="card-body"><div class="inner-grid" id="totals24-box"></div></div>
+                <div class="card-footer footer-2024" id="gw24-footer-t">GWs: -</div>
+            </div>
+        </div>
+
+        <div class="comparison-grid">
+            <div class="stat-card card-2025">
+                <div class="card-header"><span>2025 Per GW</span><span class="badge badge-2025">AVG</span></div>
+                <div class="card-body"><div class="inner-grid" id="avgs25-box"></div></div>
+                <div class="card-footer footer-2025" id="gw25-footer-a">Based on - GWs</div>
+            </div>
+            <div class="stat-card card-2024">
+                <div class="card-header"><span>2024 Per GW</span><span class="badge badge-2024">AVG</span></div>
+                <div class="card-body"><div class="inner-grid" id="avgs24-box"></div></div>
+                <div class="card-footer footer-2024" id="gw24-footer-a">Based on - GWs</div>
+            </div>
+        </div>
+
+        <div class="comparison-grid">
+            <div class="stat-card card-2025">
+                <div class="card-header"><span>2025 Radar</span></div>
+                <div class="card-body"><div class="radar-box"><canvas id="radar25"></canvas></div></div>
+                <div class="card-footer footer-2025">Performance Profile</div>
+            </div>
+            <div class="stat-card card-2024">
+                <div class="card-header"><span>2024 Radar</span></div>
+                <div class="card-body"><div class="radar-box"><canvas id="radar24"></canvas></div></div>
+                <div class="card-footer footer-2024">Performance Profile</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="leaderboard" class="tab-content">
+        <div class="cat-group">
+            <button class="cat-btn active" onclick="updateLBs('pts', this)">Points</button>
+            <button class="cat-btn" onclick="updateLBs('gls', this)">Goals</button>
+            <button class="cat-btn" onclick="updateLBs('ast', this)">Assists</button>
+            <button class="cat-btn" onclick="updateLBs('cs', this)">Clean</button>
+        </div>
+
+        <div class="comparison-grid">
+            <div>
+                <div class="lb-title">Total <span id="cat-label-t">Points</span></div>
+                <table class="leader-table">
+                    <thead><tr><th>#</th><th>Name</th><th style="text-align:right">Val</th></tr></thead>
+                    <tbody id="lb-total-body"></tbody>
+                </table>
+            </div>
+            <div>
+                <div class="lb-title">Avg <span id="cat-label-a">Points</span></div>
+                <table class="leader-table">
+                    <thead><tr><th>#</th><th>Name</th><th style="text-align:right">Val</th></tr></thead>
+                    <tbody id="lb-avg-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const data2025 = [
+    { name: "SANWAR", pts: 219, ast: 32, cs: 117, gls: 31, gw: 38 },
+    { name: "ABDUL HYE", pts: 196, ast: 26, cs: 108, gls: 26, gw: 37 },
+    { name: "REZWAN", pts: 192, ast: 49, cs: 18, gls: 82, gw: 40 },
+    { name: "IKRAM", pts: 171, ast: 22, cs: 88, gls: 25, gw: 37 },
+    { name: "ZAFFER", pts: 169, ast: 28, cs: 62, gls: 39, gw: 40 },
+    { name: "NABEEL", pts: 150, ast: 15, cs: 88, gls: 13, gw: 34 },
+    { name: "NOOR", pts: 147, ast: 35, cs: 26, gls: 59, gw: 28 },
+    { name: "RUMEL", pts: 145, ast: 24, cs: 72, gls: 14, gw: 35 },
+    { name: "A.ALIM", pts: 137, ast: 34, cs: 10, gls: 62, gw: 31 },
+    { name: "MOSH", pts: 137, ast: 15, cs: 61, gls: 34, gw: 27 },
+    { name: "SHOMEEM", pts: 134, ast: 13, cs: 72, gls: 16, gw: 37 },
+    { name: "JANGIR", pts: 131, ast: 18, cs: 0, gls: 78, gw: 35 },
+    { name: "SHUHEL", pts: 126, ast: 14, cs: 58, gls: 15, gw: 39 },
+    { name: "MUJIB", pts: 125, ast: 13, cs: 54, gls: 28, gw: 30 },
+    { name: "BAHAR", pts: 100, ast: 19, cs: 14, gls: 41, gw: 27 },
+    { name: "KAMAL", pts: 63, ast: 4, cs: 30, gls: 6, gw: 24 }
+];
+
+const data2024 = [
+    { name: "NOOR", pts: 255, ast: 43, cs: 36, gls: 131, gw: 43 },
+    { name: "SANWAR", pts: 241, ast: 40, cs: 142, gls: 19, gw: 40 },
+    { name: "REZWAN", pts: 188, ast: 37, cs: 28, gls: 82, gw: 42 },
+    { name: "ABDUL HYE", pts: 180, ast: 32, cs: 70, gls: 47, gw: 35 },
+    { name: "IKRAM", pts: 178, ast: 44, cs: 68, gls: 30, gw: 37 },
+    { name: "A.ALIM", pts: 173, ast: 42, cs: 12, gls: 80, gw: 39 },
+    { name: "JANGIR", pts: 152, ast: 33, cs: 4, gls: 72, gw: 43 },
+    { name: "MOSH", pts: 136, ast: 23, cs: 66, gls: 17, gw: 32 },
+    { name: "ZAFFER", pts: 133, ast: 20, cs: 28, gls: 54, gw: 31 },
+    { name: "SHUHEL", pts: 133, ast: 14, cs: 64, gls: 18, gw: 38 },
+    { name: "BAHAR", pts: 132, ast: 17, cs: 64, gls: 25, gw: 26 },
+    { name: "NABEEL", pts: 128, ast: 13, cs: 70, gls: 9, gw: 36 },
+    { name: "KAMAL", pts: 127, ast: 19, cs: 50, gls: 25, gw: 33 },
+    { name: "SHOMEEM", pts: 127, ast: 11, cs: 59, gls: 22, gw: 35 },
+    { name: "RUMEL", pts: 89, ast: 23, cs: 24, gls: 16, gw: 26 }
+];
+
+let chart25, chart24;
+
+function init() {
+    const grid = document.getElementById('playerGrid');
+    data2025.forEach(p => {
+        const btn = document.createElement('button');
+        btn.className = 'player-btn';
+        btn.innerText = p.name;
+        btn.onclick = () => {
+            document.querySelectorAll('.player-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            renderPlayer(p.name);
+        };
+        grid.appendChild(btn);
+    });
+    grid.firstChild.click();
+    updateLBs('pts');
+}
+
+function renderPlayer(name) {
+    const p25 = data2025.find(p => p.name === name);
+    const p24 = data2024.find(p => p.name === name);
+    document.getElementById('playerNameHeader').innerText = name;
+
+    const buildHTML = (p, isAvg) => {
+        if (!p) return '<div class="stat-item" style="grid-column: span 2; background: none;">No Data</div>';
+        const labels = ['Points', 'Goals', 'Assists', 'Clean'];
+        const keys = ['pts', 'gls', 'ast', 'cs'];
+        return keys.map((k, i) => `
+            <div class="stat-item">
+                <span class="stat-label">${labels[i]}</span>
+                <span class="stat-value">${isAvg ? (p[k]/p.gw).toFixed(2) : p[k]}</span>
+            </div>
+        `).join('');
+    };
+
+    document.getElementById('totals25-box').innerHTML = buildHTML(p25, false);
+    document.getElementById('totals24-box').innerHTML = buildHTML(p24, false);
+    document.getElementById('avgs25-box').innerHTML = buildHTML(p25, true);
+    document.getElementById('avgs24-box').innerHTML = buildHTML(p24, true);
+    
+    document.getElementById('pts25-badge-t').innerText = (p25.pts/p25.gw).toFixed(2);
+    document.getElementById('pts24-badge-t').innerText = p24 ? (p24.pts/p24.gw).toFixed(2) : '0.0';
+    
+    document.getElementById('gw25-footer-t').innerText = `GWs: ${p25.gw}`;
+    document.getElementById('gw24-footer-t').innerText = p24 ? `GWs: ${p24.gw}` : 'GWs: -';
+    document.getElementById('gw25-footer-a').innerText = `Based on ${p25.gw} GWs`;
+    document.getElementById('gw24-footer-a').innerText = p24 ? `Based on ${p24.gw} GWs` : 'No Data';
+
+    updateRadars(p25, p24);
+}
+
+function updateRadars(p25, p24) {
+    const config = (p, color) => ({
+        type: 'radar',
+        data: {
+            labels: ['G', 'A', 'C'],
+            datasets: [{
+                data: [p.gls, p.ast, p.cs],
+                backgroundColor: color + '44', borderColor: color, borderWidth: 2, pointRadius: 0
+            }]
+        },
+        options: {
+            scales: { r: { min: 0, ticks: { display: false }, grid: { color: 'rgba(0,0,0,0.05)' } } },
+            plugins: { legend: { display: false } },
+            maintainAspectRatio: false
+        }
+    });
+
+    if (chart25) chart25.destroy();
+    chart25 = new Chart(document.getElementById('radar25'), config(p25, '#2563eb'));
+    if (chart24) chart24.destroy();
+    if (p24) chart24 = new Chart(document.getElementById('radar24'), config(p24, '#ea580c'));
+}
+
+function updateLBs(cat, btn) {
+    if (btn) {
+        document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const labels = {pts:'Points', gls:'Goals', ast:'Assists', cs:'Clean'};
+        document.getElementById('cat-label-t').innerText = labels[cat];
+        document.getElementById('cat-label-a').innerText = labels[cat];
+    }
+    const totalSorted = [...data2025].sort((a,b) => b[cat] - a[cat]);
+    const avgSorted = [...data2025].sort((a,b) => (b[cat]/b.gw) - (a[cat]/a.gw));
+    const row = (p, i, val) => `<tr><td>${i+1}</td><td>${p.name}</td><td style="text-align:right; font-weight:700">${val}</td></tr>`;
+    document.getElementById('lb-total-body').innerHTML = totalSorted.map((p, i) => row(p, i, p[cat])).join('');
+    document.getElementById('lb-avg-body').innerHTML = avgSorted.map((p, i) => row(p, i, (p[cat]/p.gw).toFixed(2))).join('');
+}
+
+function switchTab(tab) {
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById(tab).classList.add('active');
+    event.currentTarget.classList.add('active');
+}
+
+init();
+</script>
+</body>
+</html>
