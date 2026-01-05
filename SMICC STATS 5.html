@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Elite Stats Dashboard v3</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --secondary: #64748b;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --bg: #f1f5f9;
+            --card: #ffffff;
+        }
+        body {
+            font-family: -apple-system, system-ui, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            padding: 0;
+            color: #1e293b;
+        }
+        .container { max-width: 600px; margin: auto; padding: 10px; padding-bottom: 80px; }
+        
+        /* Navigation Tabs */
+        .nav-tabs {
+            display: flex;
+            background: var(--card);
+            border-bottom: 1px solid #e2e8f0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .nav-tab {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            font-weight: bold;
+            color: var(--secondary);
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            font-size: 0.9rem;
+        }
+        .nav-tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* Player Selection Buttons */
+        .player-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 5px;
+            margin: 10px 0;
+        }
+        .player-btn {
+            background: var(--card);
+            border: 1px solid #cbd5e1;
+            padding: 8px 2px;
+            border-radius: 6px;
+            font-size: 0.65rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .player-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+        /* Badges */
+        .badge-leader {
+            background: var(--warning);
+            color: white;
+            font-size: 0.6rem;
+            padding: 2px 6px;
+            border-radius: 10px;
+            margin-left: 5px;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+
+        /* Cards */
+        .card {
+            background: var(--card);
+            padding: 12px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 12px;
+        }
+        .card-title { font-weight: bold; font-size: 0.9rem; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;}
+        
+        .grid-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+        .stat-box { padding: 10px 5px; border-radius: 8px; background: #f8fafc; text-align: center; border: 1px solid #e2e8f0; }
+        .stat-val { font-size: 1.1rem; font-weight: 800; display: block; }
+        .stat-label { font-size: 0.65rem; color: var(--secondary); text-transform: uppercase; }
+        .rank-pos { font-size: 0.65rem; color: var(--primary); font-weight: bold; display: block; }
+        
+        .trend { font-size: 0.65rem; font-weight: bold; }
+        .trend-up { color: var(--success); }
+        .trend-down { color: var(--danger); }
+
+        /* Side-by-Side Leaderboards */
+        .lb-container {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .lb-half { flex: 1; width: 50%; }
+        .lb-title { font-size: 0.75rem; font-weight: bold; color: var(--secondary); text-align: center; margin-bottom: 5px; text-transform: uppercase; }
+        
+        .leader-table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; font-size: 0.75rem; }
+        .leader-table th { background: #f8fafc; padding: 6px; text-align: left; border-bottom: 1px solid #e2e8f0; color: var(--secondary); }
+        .leader-table td { padding: 8px 4px; border-bottom: 1px solid #f8fafc; }
+        .rank-col { width: 15px; font-weight: bold; color: #94a3b8; }
+        .name-col { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60px; font-weight: 600; }
+        .val-col { text-align: right; font-weight: 800; color: var(--primary); }
+
+        /* Category Toggles */
+        .cat-group { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-bottom: 15px; }
+        .cat-btn {
+            padding: 8px 2px;
+            border: 1px solid #cbd5e1;
+            background: white;
+            color: var(--secondary);
+            border-radius: 8px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .cat-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+        .radar-container { display: flex; gap: 5px; justify-content: space-between; }
+        .radar-box { width: 49%; height: 160px; }
+    </style>
+</head>
+<body>
+
+<div class="nav-tabs">
+    <div class="nav-tab active" onclick="switchTab('profile')">Profile</div>
+    <div class="nav-tab" onclick="switchTab('leaderboard')">Leaderboards</div>
+</div>
+
+<div class="container">
+    
+    <div id="profile" class="tab-content active">
+        <div class="player-grid" id="playerGrid"></div>
+
+        <div class="card">
+            <div class="card-title">
+                <span>2025 Totals: <span id="playerDisplayName" style="color:var(--primary)">-</span></span>
+                <span id="leaderBadge"></span>
+            </div>
+            <div class="grid-stats" id="totalStats"></div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">2025 Averages (Per GW)</div>
+            <div class="grid-stats" id="avgStats"></div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Visual Comparison ('24 vs '25)</div>
+            <div class="radar-container">
+                <div class="radar-box"><canvas id="radar24"></canvas></div>
+                <div class="radar-box"><canvas id="radar25"></canvas></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="leaderboard" class="tab-content">
+        <div class="cat-group">
+            <button class="cat-btn active" onclick="setCategory('pts', this)">Points</button>
+            <button class="cat-btn" onclick="setCategory('gls', this)">Goals</button>
+            <button class="cat-btn" onclick="setCategory('ast', this)">Assists</button>
+            <button class="cat-btn" onclick="setCategory('cs', this)">CS</button>
+        </div>
+        
+        <div class="lb-container">
+            <div class="lb-half">
+                <div class="lb-title">Total <span id="catLabelT">Points</span></div>
+                <table class="leader-table">
+                    <thead><tr><th>#</th><th>Name</th><th style="text-align:right">Val</th></tr></thead>
+                    <tbody id="lbTotalBody"></tbody>
+                </table>
+            </div>
+            <div class="lb-half">
+                <div class="lb-title">Avg <span id="catLabelA">Points</span></div>
+                <table class="leader-table">
+                    <thead><tr><th>#</th><th>Name</th><th style="text-align:right">Val</th></tr></thead>
+                    <tbody id="lbAvgBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const data2025 = [
+    { name: "SANWAR", pts: 219, ast: 32, cs: 117, gls: 31, gw: 38 },
+    { name: "ABDULHYE", pts: 196, ast: 26, cs: 108, gls: 26, gw: 37 },
+    { name: "REZWAN", pts: 192, ast: 49, cs: 18, gls: 82, gw: 40 },
+    { name: "IKRAM", pts: 171, ast: 22, cs: 88, gls: 25, gw: 37 },
+    { name: "ZAFFER", pts: 169, ast: 28, cs: 62, gls: 39, gw: 40 },
+    { name: "NABEEL", pts: 150, ast: 15, cs: 88, gls: 13, gw: 34 },
+    { name: "NOOR", pts: 147, ast: 35, cs: 26, gls: 59, gw: 28 },
+    { name: "RUMEL", pts: 145, ast: 24, cs: 72, gls: 14, gw: 35 },
+    { name: "A.ALIM", pts: 137, ast: 34, cs: 10, gls: 62, gw: 31 },
+    { name: "MOSH", pts: 137, ast: 15, cs: 61, gls: 34, gw: 27 },
+    { name: "SHOMEEM", pts: 134, ast: 13, cs: 72, gls: 16, gw: 37 },
+    { name: "JANGIR", pts: 131, ast: 18, cs: 0, gls: 78, gw: 35 },
+    { name: "SHUHEL", pts: 126, ast: 14, cs: 58, gls: 15, gw: 39 },
+    { name: "MUJIB", pts: 125, ast: 13, cs: 54, gls: 28, gw: 30 },
+    { name: "BAHAR", pts: 100, ast: 19, cs: 14, gls: 41, gw: 27 },
+    { name: "KAMAL", pts: 63, ast: 4, cs: 30, gls: 6, gw: 24 }
+];
+
+const data2024 = [
+    { name: "NOOR", pts: 255, ast: 43, cs: 36, gls: 131, gw: 43 },
+    { name: "SANWAR", pts: 241, ast: 40, cs: 142, gls: 19, gw: 40 },
+    { name: "REZWAN", pts: 188, ast: 37, cs: 28, gls: 82, gw: 42 },
+    { name: "ABDULHYE", pts: 180, ast: 32, cs: 70, gls: 47, gw: 35 },
+    { name: "IKRAM", pts: 178, ast: 44, cs: 68, gls: 30, gw: 37 },
+    { name: "A.ALIM", pts: 173, ast: 42, cs: 12, gls: 80, gw: 39 },
+    { name: "JANGIR", pts: 152, ast: 33, cs: 4, gls: 72, gw: 43 },
+    { name: "MOSH", pts: 136, ast: 23, cs: 66, gls: 17, gw: 32 },
+    { name: "ZAFFER", pts: 133, ast: 20, cs: 28, gls: 54, gw: 31 },
+    { name: "SHUHEL", pts: 133, ast: 14, cs: 64, gls: 18, gw: 38 },
+    { name: "BAHAR", pts: 132, ast: 17, cs: 64, gls: 25, gw: 26 },
+    { name: "NABEEL", pts: 128, ast: 13, cs: 70, gls: 9, gw: 36 },
+    { name: "KAMAL", pts: 127, ast: 19, cs: 50, gls: 25, gw: 33 },
+    { name: "SHOMEEM", pts: 127, ast: 11, cs: 59, gls: 22, gw: 35 },
+    { name: "RUMEL", pts: 89, ast: 23, cs: 24, gls: 16, gw: 26 },
+    { name: "MUJIB", pts: 74, ast: 12, cs: 20, gls: 24, gw: 19 }
+];
+
+let chart24, chart25, currentCat = 'pts';
+
+function init() {
+    const grid = document.getElementById('playerGrid');
+    data2025.forEach(p => {
+        const btn = document.createElement('button');
+        btn.className = 'player-btn';
+        btn.innerText = p.name;
+        btn.onclick = () => {
+            document.querySelectorAll('.player-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            renderPlayer(p.name);
+        };
+        grid.appendChild(btn);
+    });
+    grid.firstChild.click();
+    updateLeaderboards();
+}
+
+function switchTab(tab) {
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById(tab).classList.add('active');
+    event.currentTarget.classList.add('active');
+}
+
+function getRank(name, key, isAvg = false) {
+    const sorted = [...data2025].sort((a, b) => {
+        const valA = isAvg ? (a[key] / a.gw) : a[key];
+        const valB = isAvg ? (b[key] / b.gw) : b[key];
+        return valB - valA;
+    });
+    return sorted.findIndex(p => p.name === name) + 1;
+}
+
+function renderPlayer(name) {
+    const p25 = data2025.find(p => p.name === name);
+    const p24 = data2024.find(p => p.name === name);
+    document.getElementById('playerDisplayName').innerText = name;
+
+    const isLeader = ['pts', 'gls', 'ast', 'cs'].some(k => getRank(name, k) === 1);
+    document.getElementById('leaderBadge').innerHTML = isLeader ? `<span class="badge-leader">#1 RANKED</span>` : '';
+
+    const buildStat = (label, key, isAvg = false) => {
+        const v25 = isAvg ? (p25[key] / p25.gw) : p25[key];
+        const v24 = p24 ? (isAvg ? (p24[key] / p24.gw) : p24[key]) : null;
+        const rank = getRank(name, key, isAvg);
+        const trend = v24 !== null ? (v25 - v24).toFixed(2) : null;
+        
+        return `
+            <div class="stat-box">
+                <span class="rank-pos">Rank #${rank}</span>
+                <span class="stat-label">${label}</span>
+                <span class="stat-val">${isAvg ? v25.toFixed(2) : v25}</span>
+                ${trend !== null ? `<span class="trend ${trend > 0 ? 'trend-up' : trend < 0 ? 'trend-down' : ''}">${trend > 0 ? '▲ +' : trend < 0 ? '▼ ' : '- '}${trend}</span>` : ''}
+            </div>
+        `;
+    };
+
+    document.getElementById('totalStats').innerHTML = 
+        buildStat('Points', 'pts') + buildStat('Goals', 'gls') +
+        buildStat('Assists', 'ast') + buildStat('Clean Sheets', 'cs');
+
+    document.getElementById('avgStats').innerHTML = 
+        buildStat('Avg Pts', 'pts', true) + buildStat('Avg Gls', 'gls', true) +
+        buildStat('Avg Ast', 'ast', true) + buildStat('Avg CS', 'cs', true);
+
+    updateRadars(p25, p24);
+}
+
+function setCategory(cat, btn) {
+    currentCat = cat;
+    document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    
+    const labels = {pts: 'Points', gls: 'Goals', ast: 'Assists', cs: 'Clean Sheets'};
+    document.getElementById('catLabelT').innerText = labels[cat];
+    document.getElementById('catLabelA').innerText = labels[cat];
+    
+    updateLeaderboards();
+}
+
+function updateLeaderboards() {
+    const cat = currentCat;
+    
+    // Totals Leaderboard
+    const sortedTotal = [...data2025].sort((a,b) => b[cat] - a[cat]);
+    document.getElementById('lbTotalBody').innerHTML = sortedTotal.map((p, i) => `
+        <tr>
+            <td class="rank-col">${i+1}</td>
+            <td class="name-col">${p.name}</td>
+            <td class="val-col">${p[cat]}</td>
+        </tr>
+    `).join('');
+
+    // Averages Leaderboard
+    const sortedAvg = [...data2025].sort((a,b) => (b[cat]/b.gw) - (a[cat]/a.gw));
+    document.getElementById('lbAvgBody').innerHTML = sortedAvg.map((p, i) => `
+        <tr>
+            <td class="rank-col">${i+1}</td>
+            <td class="name-col">${p.name}</td>
+            <td class="val-col">${(p[cat]/p.gw).toFixed(2)}</td>
+        </tr>
+    `).join('');
+}
+
+function updateRadars(p25, p24) {
+    const config = (data) => ({
+        type: 'radar',
+        data: {
+            labels: ['Gls', 'Ast', 'CS'],
+            datasets: [{
+                data: data,
+                backgroundColor: 'rgba(37, 99, 235, 0.2)',
+                borderColor: 'rgba(37, 99, 235, 1)',
+                borderWidth: 2, pointRadius: 0
+            }]
+        },
+        options: {
+            scales: { r: { min: 0, ticks: { display: false }, grid: { color: '#e2e8f0' } } },
+            plugins: { legend: { display: false } },
+            maintainAspectRatio: false
+        }
+    });
+
+    if (chart24) chart24.destroy();
+    if (chart25) chart25.destroy();
+    chart25 = new Chart(document.getElementById('radar25'), config([p25.gls, p25.ast, p25.cs]));
+    if (p24) chart24 = new Chart(document.getElementById('radar24'), config([p24.gls, p24.ast, p24.cs]));
+}
+
+init();
+</script>
+</body>
+</html>
