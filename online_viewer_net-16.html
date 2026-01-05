@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Player Stats Pro</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --secondary: #64748b;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --bg: #f1f5f9;
+            --card: #ffffff;
+        }
+        body {
+            font-family: -apple-system, system-ui, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            padding: 10px;
+            color: #1e293b;
+        }
+        .container { max-width: 600px; margin: auto; }
+        h1 { font-size: 1.4rem; text-align: center; color: var(--primary); margin-bottom: 15px; }
+        
+        /* Player Selection Buttons */
+        .player-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+        .player-btn {
+            background: var(--card);
+            border: 1px solid #cbd5e1;
+            padding: 10px 5px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .player-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .card {
+            background: var(--card);
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 15px;
+        }
+        .card-title { font-weight: bold; font-size: 1rem; margin-bottom: 12px; border-bottom: 1px solid #f1f5f9; padding-bottom: 5px; }
+        
+        .grid-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        .stat-box { padding: 12px 5px; border-radius: 8px; background: #f8fafc; text-align: center; border: 1px solid #e2e8f0; }
+        .stat-val { font-size: 1.2rem; font-weight: 800; display: block; color: #0f172a; }
+        .stat-label { font-size: 0.7rem; color: var(--secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+        
+        .trend { font-size: 0.75rem; font-weight: bold; margin-top: 4px; display: block; }
+        .trend-up { color: var(--success); }
+        .trend-down { color: var(--danger); }
+
+        /* Radar Flexbox */
+        .radar-container { display: flex; gap: 10px; justify-content: space-between; }
+        .radar-box { width: 50%; height: 200px; }
+        .radar-label { text-align: center; font-size: 0.8rem; font-weight: bold; color: var(--secondary); }
+
+        .rank-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        .rank-table td { padding: 8px 4px; border-bottom: 1px solid #f1f5f9; }
+        .rank-num { font-weight: bold; color: var(--primary); }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Elite Performance Tracker</h1>
+    
+    <div class="player-grid" id="playerGrid">
+        </div>
+
+    <div class="card">
+        <div class="card-title">2025 Seasonal Totals: <span id="displayName" style="color:var(--primary)">SANWAR</span></div>
+        <div class="grid-stats" id="totalStats">
+            </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">Performance Per Gameweek</div>
+        <div class="grid-stats" id="avgStats">
+            </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">Style Comparison (24 vs 25)</div>
+        <div class="radar-container">
+            <div class="radar-box">
+                <div class="radar-label">2024</div>
+                <canvas id="radar24"></canvas>
+            </div>
+            <div class="radar-box">
+                <div class="radar-label">2025</div>
+                <canvas id="radar25"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const data2025 = [
+    { name: "SANWAR", pts: 219, ast: 32, cs: 117, gls: 31, gw: 38 },
+    { name: "ABDULHYE", pts: 196, ast: 26, cs: 108, gls: 26, gw: 37 },
+    { name: "REZWAN", pts: 192, ast: 49, cs: 18, gls: 82, gw: 40 },
+    { name: "IKRAM", pts: 171, ast: 22, cs: 88, gls: 25, gw: 37 },
+    { name: "ZAFFER", pts: 169, ast: 28, cs: 62, gls: 39, gw: 40 },
+    { name: "NABEEL", pts: 150, ast: 15, cs: 88, gls: 13, gw: 34 },
+    { name: "NOOR", pts: 147, ast: 35, cs: 26, gls: 59, gw: 28 },
+    { name: "RUMEL", pts: 145, ast: 24, cs: 72, gls: 14, gw: 35 },
+    { name: "A.ALIM", pts: 137, ast: 34, cs: 10, gls: 62, gw: 31 },
+    { name: "MOSH", pts: 137, ast: 15, cs: 61, gls: 34, gw: 27 },
+    { name: "SHOMEEM", pts: 134, ast: 13, cs: 72, gls: 16, gw: 37 },
+    { name: "JANGIR", pts: 131, ast: 18, cs: 0, gls: 78, gw: 35 },
+    { name: "SHUHEL", pts: 126, ast: 14, cs: 58, gls: 15, gw: 39 },
+    { name: "MUJIB", pts: 125, ast: 13, cs: 54, gls: 28, gw: 30 },
+    { name: "BAHAR", pts: 100, ast: 19, cs: 14, gls: 41, gw: 27 },
+    { name: "KAMAL", pts: 63, ast: 4, cs: 30, gls: 6, gw: 24 }
+];
+
+const data2024 = [
+    { name: "NOOR", pts: 255, ast: 43, cs: 36, gls: 131, gw: 43 },
+    { name: "SANWAR", pts: 241, ast: 40, cs: 142, gls: 19, gw: 40 },
+    { name: "REZWAN", pts: 188, ast: 37, cs: 28, gls: 82, gw: 42 },
+    { name: "ABDULHYE", pts: 180, ast: 32, cs: 70, gls: 47, gw: 35 },
+    { name: "IKRAM", pts: 178, ast: 44, cs: 68, gls: 30, gw: 37 },
+    { name: "A.ALIM", pts: 173, ast: 42, cs: 12, gls: 80, gw: 39 },
+    { name: "JANGIR", pts: 152, ast: 33, cs: 4, gls: 72, gw: 43 },
+    { name: "MOSH", pts: 136, ast: 23, cs: 66, gls: 17, gw: 32 },
+    { name: "ZAFFER", pts: 133, ast: 20, cs: 28, gls: 54, gw: 31 },
+    { name: "SHUHEL", pts: 133, ast: 14, cs: 64, gls: 18, gw: 38 },
+    { name: "BAHAR", pts: 132, ast: 17, cs: 64, gls: 25, gw: 26 },
+    { name: "NABEEL", pts: 128, ast: 13, cs: 70, gls: 9, gw: 36 },
+    { name: "KAMAL", pts: 127, ast: 19, cs: 50, gls: 25, gw: 33 },
+    { name: "SHOMEEM", pts: 127, ast: 11, cs: 59, gls: 22, gw: 35 },
+    { name: "RUMEL", pts: 89, ast: 23, cs: 24, gls: 16, gw: 26 },
+    { name: "MUJIB", pts: 74, ast: 12, cs: 20, gls: 24, gw: 19 }
+];
+
+let chart24, chart25;
+const grid = document.getElementById('playerGrid');
+
+// Create Buttons
+data2025.forEach(p => {
+    const btn = document.createElement('button');
+    btn.className = 'player-btn';
+    btn.innerText = p.name;
+    btn.onclick = () => {
+        document.querySelectorAll('.player-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        renderPlayer(p.name);
+    };
+    grid.appendChild(btn);
+});
+
+function getTrend(val25, val24) {
+    if (val24 === undefined) return '';
+    const diff = (val25 - val24).toFixed(2);
+    if (diff > 0) return `<span class="trend trend-up">▲ +${diff}</span>`;
+    if (diff < 0) return `<span class="trend trend-down">▼ ${diff}</span>`;
+    return `<span class="trend" style="color:gray">- 0.0</span>`;
+}
+
+function renderPlayer(name) {
+    const p25 = data2025.find(p => p.name === name);
+    const p24 = data2024.find(p => p.name === name);
+    document.getElementById('displayName').innerText = name;
+
+    const buildStat = (label, val25, val24, isAvg = false) => {
+        const v25 = isAvg ? (val25 / p25.gw) : val25;
+        const v24 = isAvg && p24 ? (val24 / p24.gw) : val24;
+        return `
+            <div class="stat-box">
+                <span class="stat-label">${label}</span>
+                <span class="stat-val">${isAvg ? v25.toFixed(2) : v25}</span>
+                ${getTrend(v25, v24)}
+            </div>
+        `;
+    };
+
+    // Totals Section
+    document.getElementById('totalStats').innerHTML = 
+        buildStat('Total Points', p25.pts, p24?.pts) +
+        buildStat('Total Goals', p25.gls, p24?.gls) +
+        buildStat('Total Assists', p25.ast, p24?.ast) +
+        buildStat('Clean Sheets', p25.cs, p24?.cs);
+
+    // Averages Section
+    document.getElementById('avgStats').innerHTML = 
+        buildStat('Avg Pts', p25.pts, p24?.pts, true) +
+        buildStat('Avg Goals', p25.gls, p24?.gls, true) +
+        buildStat('Avg Assists', p25.ast, p24?.ast, true) +
+        buildStat('Avg CS', p25.cs, p24?.cs, true);
+
+    updateRadars(p25, p24);
+}
+
+function updateRadars(p25, p24) {
+    const commonConfig = {
+        type: 'radar',
+        options: {
+            scales: { r: { min: 0, ticks: { display: false }, grid: { color: '#e2e8f0' } } },
+            plugins: { legend: { display: false } },
+            maintainAspectRatio: false
+        }
+    };
+
+    if (chart24) chart24.destroy();
+    if (chart25) chart25.destroy();
+
+    const labels = ['Goals', 'Assists', 'Clean Sheets'];
+
+    chart25 = new Chart(document.getElementById('radar25'), {
+        ...commonConfig,
+        data: {
+            labels,
+            datasets: [{
+                data: [p25.gls, p25.ast, p25.cs],
+                backgroundColor: 'rgba(37, 99, 235, 0.2)',
+                borderColor: 'rgba(37, 99, 235, 1)',
+                borderWidth: 2, pointRadius: 2
+            }]
+        }
+    });
+
+    if (p24) {
+        chart24 = new Chart(document.getElementById('radar24'), {
+            ...commonConfig,
+            data: {
+                labels,
+                datasets: [{
+                    data: [p24.gls, p24.ast, p24.cs],
+                    backgroundColor: 'rgba(100, 116, 139, 0.2)',
+                    borderColor: 'rgba(100, 116, 139, 1)',
+                    borderWidth: 2, pointRadius: 2
+                }]
+            }
+        });
+    }
+}
+
+// Default select first player
+grid.firstChild.click();
+</script>
+
+</body>
+</html>
