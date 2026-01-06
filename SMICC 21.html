@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Elite Stats Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            /* 2025 Theme: Blue */
+            --theme-25-primary: #3b82f6;
+            --theme-25-bg: #eff6ff;
+            --theme-25-border: #dbeafe;
+            
+            /* 2024 Theme: Purple */
+            --theme-24-primary: #a855f7;
+            --theme-24-bg: #faf5ff;
+            --theme-24-border: #f3e8ff;
+
+            --text-main: #1e293b;
+            --text-sub: #64748b;
+            --bg: #f8fafc;
+            --white: #ffffff;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            padding: 0;
+            color: var(--text-main);
+            padding-bottom: 80px; 
+        }
+
+        .container { max-width: 500px; margin: auto; padding: 12px; }
+
+        /* Navigation */
+        .nav-tabs {
+            display: flex;
+            background: var(--white);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .nav-tab {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 0.8rem;
+            color: var(--text-sub);
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+        }
+        .nav-tab.active { color: var(--theme-25-primary); border-bottom-color: var(--theme-25-primary); }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* Player Grid */
+        .player-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+            margin: 12px 0;
+        }
+        .player-btn {
+            background: var(--white);
+            border: 1px solid #e2e8f0;
+            padding: 8px 2px;
+            border-radius: 8px;
+            font-size: 0.65rem;
+            font-weight: 700;
+            cursor: pointer;
+            color: var(--text-sub);
+            transition: all 0.2s;
+        }
+        .player-btn.active { 
+            background: var(--theme-25-primary); 
+            color: var(--white); 
+            border-color: var(--theme-25-primary); 
+        }
+
+        /* CARD STYLING */
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        .stat-card {
+            border-radius: 12px;
+            padding: 10px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            border: 1px solid transparent;
+        }
+
+        /* Color Profiles */
+        .card-24 { background-color: var(--theme-24-bg); border-color: var(--theme-24-border); }
+        .card-25 { background-color: var(--theme-25-bg); border-color: var(--theme-25-border); }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.7rem;
+            font-weight: 800;
+            margin-bottom: 8px;
+            color: var(--text-main);
+        }
+
+        .badge {
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.65rem;
+            font-weight: 700;
+        }
+        .badge-24 { background-color: var(--theme-24-primary); }
+        .badge-25 { background-color: var(--theme-25-primary); }
+
+        .inner-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px;
+        }
+        .stat-item {
+            background: rgba(255,255,255,0.6);
+            padding: 8px 4px;
+            border-radius: 6px;
+            text-align: center;
+            border: 1px solid rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .stat-rank { font-size: 0.6rem; font-weight: 800; color: var(--text-sub); line-height: 1; }
+        .rank-top { color: #f59e0b; }
+        .stat-label { font-size: 0.55rem; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-top: 2px; }
+        .stat-value { font-size: 1rem; font-weight: 800; color: #0f172a; }
+
+        .card-footer {
+            text-align: center;
+            font-size: 0.6rem;
+            margin-top: 8px;
+            padding: 6px;
+            border-radius: 4px;
+            font-weight: 600;
+            background: rgba(255,255,255,0.5);
+            color: var(--text-sub);
+        }
+
+        /* Leaderboard & YOY */
+        .toggle-container { display: flex; justify-content: center; margin: 15px 0; }
+        .toggle-btn { padding: 8px 16px; border: 1px solid #e2e8f0; background: #fff; font-size: 0.75rem; font-weight: 700; color: var(--text-sub); cursor: pointer; }
+        .toggle-btn:first-child { border-radius: 8px 0 0 8px; }
+        .toggle-btn:last-child { border-radius: 0 8px 8px 0; border-left: 0; }
+        .toggle-btn.active { background: var(--theme-25-primary); color: #fff; border-color: var(--theme-25-primary); }
+
+        .data-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .data-table th { text-align: left; padding: 10px 8px; background: #fff; border-bottom: 2px solid #f1f5f9; color: var(--text-main); font-weight: 800; }
+        .data-table td { padding: 10px 8px; border-bottom: 1px solid #f1f5f9; font-weight: 600; }
+        
+        .cat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-bottom: 10px; }
+        .cat-btn { background: #fff; border: 1px solid #e2e8f0; padding: 6px; border-radius: 6px; font-size: 0.7rem; font-weight: 700; color: var(--text-sub); }
+        .cat-btn.active { background: var(--text-main); color: #fff; border-color: var(--text-main); }
+    </style>
+</head>
+<body>
+
+<div class="nav-tabs">
+    <div class="nav-tab active" onclick="switchTab('profile')">Profiles</div>
+    <div class="nav-tab" onclick="switchTab('leaderboard')">Leaderboards</div>
+    <div class="nav-tab" onclick="switchTab('yoy')">YOY Change</div>
+</div>
+
+<div class="container">
+    
+    <div id="profile" class="tab-content active">
+        <h2 id="playerName" style="font-size:1.2rem; margin:10px 0 5px 2px;">-</h2>
+        <div class="player-grid" id="playerGrid"></div>
+
+        <div class="comparison-grid">
+            <div class="stat-card card-24">
+                <div class="card-header">
+                    <span>2024 Totals</span>
+                    <span class="badge badge-24" id="badgePts24">0</span>
+                </div>
+                <div class="inner-grid" id="totals24"></div>
+                <div class="card-footer" id="footTot24">Based on 0 GWs</div>
+            </div>
+            
+            <div class="stat-card card-25">
+                <div class="card-header">
+                    <span>2025 Totals</span>
+                    <span class="badge badge-25" id="badgePts25">0</span>
+                </div>
+                <div class="inner-grid" id="totals25"></div>
+                <div class="card-footer" id="footTot25">Based on 0 GWs</div>
+            </div>
+        </div>
+
+        <div class="comparison-grid">
+            <div class="stat-card card-24">
+                <div class="card-header">
+                    <span>2024 Per GW</span>
+                    <span class="badge badge-24">AVG</span>
+                </div>
+                <div class="inner-grid" id="avg24"></div>
+                <div class="card-footer" id="footAvg24">-</div>
+            </div>
+
+            <div class="stat-card card-25">
+                <div class="card-header">
+                    <span>2025 Per GW</span>
+                    <span class="badge badge-25">AVG</span>
+                </div>
+                <div class="inner-grid" id="avg25"></div>
+                <div class="card-footer" id="footAvg25">-</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="leaderboard" class="tab-content">
+        <div class="cat-row">
+            <button class="cat-btn active" onclick="setLeaderCat('pts', this)">Points</button>
+            <button class="cat-btn" onclick="setLeaderCat('gls', this)">Goals</button>
+            <button class="cat-btn" onclick="setLeaderCat('ast', this)">Assists</button>
+            <button class="cat-btn" onclick="setLeaderCat('cs', this)">CS</button>
+        </div>
+        <div style="display:flex; gap:10px">
+            <div style="flex:1">
+                <div style="text-align:center; font-size:0.7rem; font-weight:800; color:var(--text-sub); margin-bottom:5px">TOTALS</div>
+                <table class="data-table">
+                    <tbody id="lbTotalBody"></tbody>
+                </table>
+            </div>
+            <div style="flex:1">
+                <div style="text-align:center; font-size:0.7rem; font-weight:800; color:var(--text-sub); margin-bottom:5px">AVERAGES</div>
+                <table class="data-table">
+                    <tbody id="lbAvgBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="yoy" class="tab-content">
+        <div class="toggle-container">
+            <button class="toggle-btn active" id="yoyAvgBtn" onclick="setYoyMode('avg')">Based on Averages</button>
+            <button class="toggle-btn" id="yoyTotBtn" onclick="setYoyMode('total')">Based on Totals</button>
+        </div>
+        
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Player</th>
+                    <th style="text-align:center">Pts 25</th>
+                    <th style="text-align:right">Pts</th>
+                    <th style="text-align:right">Gls</th>
+                    <th style="text-align:right">Ast</th>
+                    <th style="text-align:right">CS</th>
+                </tr>
+            </thead>
+            <tbody id="yoyBody"></tbody>
+        </table>
+    </div>
+
+</div>
+
+<script>
+// RAW DATA
+const data2025 = [
+    { name: "SANWAR", pts: 219, ast: 32, cs: 117, gls: 31, gw: 38 },
+    { name: "ABDUL HYE", pts: 196, ast: 26, cs: 108, gls: 26, gw: 37 },
+    { name: "REZWAN", pts: 192, ast: 49, cs: 18, gls: 82, gw: 40 },
+    { name: "IKRAM", pts: 171, ast: 22, cs: 88, gls: 25, gw: 37 },
+    { name: "ZAFFER", pts: 169, ast: 28, cs: 62, gls: 39, gw: 40 },
+    { name: "NABEEL", pts: 150, ast: 15, cs: 88, gls: 13, gw: 34 },
+    { name: "NOOR", pts: 147, ast: 35, cs: 26, gls: 59, gw: 28 },
+    { name: "RUMEL", pts: 145, ast: 24, cs: 72, gls: 14, gw: 35 },
+    { name: "A.ALIM", pts: 137, ast: 34, cs: 10, gls: 62, gw: 31 },
+    { name: "MOSH", pts: 137, ast: 15, cs: 61, gls: 34, gw: 27 },
+    { name: "SHOMEEM", pts: 134, ast: 13, cs: 72, gls: 16, gw: 37 },
+    { name: "JANGIR", pts: 131, ast: 18, cs: 0, gls: 78, gw: 35 },
+    { name: "SHUHEL", pts: 126, ast: 14, cs: 58, gls: 15, gw: 39 },
+    { name: "MUJIB", pts: 125, ast: 13, cs: 54, gls: 28, gw: 30 },
+    { name: "BAHAR", pts: 100, ast: 19, cs: 14, gls: 41, gw: 27 },
+    { name: "KAMAL", pts: 63, ast: 4, cs: 30, gls: 6, gw: 24 }
+];
+
+const data2024 = [
+    { name: "NOOR", pts: 255, ast: 43, cs: 36, gls: 131, gw: 43 },
+    { name: "SANWAR", pts: 241, ast: 40, cs: 142, gls: 19, gw: 40 },
+    { name: "REZWAN", pts: 188, ast: 37, cs: 28, gls: 82, gw: 42 },
+    { name: "ABDUL HYE", pts: 180, ast: 32, cs: 70, gls: 47, gw: 35 },
+    { name: "IKRAM", pts: 178, ast: 44, cs: 68, gls: 30, gw: 37 },
+    { name: "A.ALIM", pts: 173, ast: 42, cs: 12, gls: 80, gw: 39 },
+    { name: "JANGIR", pts: 152, ast: 33, cs: 4, gls: 72, gw: 43 },
+    { name: "MOSH", pts: 136, ast: 23, cs: 66, gls: 17, gw: 32 },
+    { name: "ZAFFER", pts: 133, ast: 20, cs: 28, gls: 54, gw: 31 },
+    { name: "SHUHEL", pts: 133, ast: 14, cs: 64, gls: 18, gw: 38 },
+    { name: "BAHAR", pts: 132, ast: 17, cs: 64, gls: 25, gw: 26 },
+    { name: "NABEEL", pts: 128, ast: 13, cs: 70, gls: 9, gw: 36 },
+    { name: "KAMAL", pts: 127, ast: 19, cs: 50, gls: 25, gw: 33 },
+    { name: "SHOMEEM", pts: 127, ast: 11, cs: 59, gls: 22, gw: 35 },
+    { name: "RUMEL", pts: 89, ast: 23, cs: 24, gls: 16, gw: 26 },
+    { name: "MUJIB", pts: 74, ast: 12, cs: 20, gls: 24, gw: 19 }
+];
+
+let leaderCat = 'pts';
+let yoyMode = 'avg'; 
+
+function getRank(name, yearData, key, isAvg) {
+    const sorted = [...yearData].sort((a, b) => {
+        const valA = isAvg ? (a[key] / a.gw) : a[key];
+        const valB = isAvg ? (b[key] / b.gw) : b[key];
+        return valB - valA;
+    });
+    return sorted.findIndex(p => p.name === name) + 1;
+}
+
+function init() {
+    const grid = document.getElementById('playerGrid');
+    
+    // Sort players alphabetically
+    const sortedPlayers = [...data2025].sort((a, b) => a.name.localeCompare(b.name));
+    
+    sortedPlayers.forEach(p => {
+        const btn = document.createElement('button');
+        btn.className = 'player-btn'; btn.innerText = p.name;
+        btn.onclick = () => { document.querySelectorAll('.player-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); renderPlayer(p.name); };
+        grid.appendChild(btn);
+    });
+    
+    grid.firstChild.click();
+    updateLeaderboards();
+    renderYoyTable();
+}
+
+function renderPlayer(name) {
+    document.getElementById('playerName').innerText = name;
+    const p25 = data2025.find(p => p.name === name);
+    const p24 = data2024.find(p => p.name === name);
+
+    const buildBox = (label, val, rank) => `
+        <div class="stat-item">
+            <span class="stat-rank ${rank <= 3 ? 'rank-top' : ''}">#${rank}</span>
+            <span class="stat-label">${label}</span>
+            <span class="stat-value">${val}</span>
+        </div>`;
+
+    const renderCard = (p, data, isAvg, contId, badgeId, footId) => {
+        const cont = document.getElementById(contId);
+        if (!p) { cont.innerHTML = '<div style="margin:auto; font-size:0.7rem; color:gray">No Data</div>'; return; }
+        
+        const pts = isAvg ? (p.pts/p.gw).toFixed(2) : p.pts;
+        const gls = isAvg ? (p.gls/p.gw).toFixed(2) : p.gls;
+        const ast = isAvg ? (p.ast/p.gw).toFixed(2) : p.ast;
+        const cs = isAvg ? (p.cs/p.gw).toFixed(2) : p.cs;
+
+        cont.innerHTML = 
+            buildBox('Points', pts, getRank(p.name, data, 'pts', isAvg)) +
+            buildBox('Goals', gls, getRank(p.name, data, 'gls', isAvg)) +
+            buildBox('Assists', ast, getRank(p.name, data, 'ast', isAvg)) +
+            buildBox('Clean', cs, getRank(p.name, data, 'cs', isAvg));
+
+        if(badgeId) document.getElementById(badgeId).innerText = (p.pts/p.gw).toFixed(2);
+        if(footId) document.getElementById(footId).innerText = `Based on ${p.gw} GWs`;
+    };
+
+    renderCard(p24, data2024, false, 'totals24', 'badgePts24', 'footTot24');
+    renderCard(p25, data2025, false, 'totals25', 'badgePts25', 'footTot25');
+    renderCard(p24, data2024, true, 'avg24', null, 'footAvg24');
+    renderCard(p25, data2025, true, 'avg25', null, 'footAvg25');
+}
+
+function setLeaderCat(cat, btn) {
+    leaderCat = cat;
+    document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    updateLeaderboards();
+}
+
+function updateLeaderboards() {
+    const row = (p, i, avg) => `<tr><td style="color:#94a3b8; width:20px">${i+1}</td><td style="font-weight:700; font-size:0.65rem">${p.name}</td><td style="text-align:right; color:var(--theme-25-primary); font-weight:800">${avg ? (p[leaderCat]/p.gw).toFixed(2) : p[leaderCat]}</td></tr>`;
+    document.getElementById('lbTotalBody').innerHTML = [...data2025].sort((a,b)=>b[leaderCat]-a[leaderCat]).map((p,i)=>row(p,i,false)).join('');
+    document.getElementById('lbAvgBody').innerHTML = [...data2025].sort((a,b)=>(b[leaderCat]/b.gw)-(a[leaderCat]/a.gw)).map((p,i)=>row(p,i,true)).join('');
+}
+
+function setYoyMode(m) {
+    yoyMode = m;
+    document.getElementById('yoyAvgBtn').classList.toggle('active', m==='avg');
+    document.getElementById('yoyTotBtn').classList.toggle('active', m==='total');
+    renderYoyTable();
+}
+
+function renderYoyTable() {
+    const tbody = document.getElementById('yoyBody');
+    const isAvg = yoyMode === 'avg';
+    const sorted = [...data2025].sort((a,b) => b.pts - a.pts);
+
+    tbody.innerHTML = sorted.map(p25 => {
+        const p24 = data2024.find(p => p.name === p25.name);
+        const pts25Val = isAvg ? (p25.pts / p25.gw).toFixed(2) : p25.pts;
+
+        const getPct = (key) => {
+            if (!p24) return '<span class="trend-neu">-</span>';
+            const v25 = isAvg ? (p25[key] / p25.gw) : p25[key];
+            const v24 = isAvg ? (p24[key] / p24.gw) : p24[key];
+            if (v24 === 0) return v25 > 0 ? '<span style="color:#10b981">+100%</span>' : '<span class="trend-neu">0%</span>';
+            const pct = ((v25 - v24) / v24) * 100;
+            const cls = pct > 0 ? 'color:#10b981' : pct < 0 ? 'color:#ef4444' : 'color:#64748b';
+            return `<span style="${cls}">${pct>0?'+':''}${Math.round(pct)}%</span>`;
+        };
+
+        return `<tr><td style="font-weight:800">${p25.name}</td><td style="text-align:center; font-weight:800; color:#334155">${pts25Val}</td><td style="text-align:right; font-weight:700">${getPct('pts')}</td><td style="text-align:right; font-weight:700">${getPct('gls')}</td><td style="text-align:right; font-weight:700">${getPct('ast')}</td><td style="text-align:right; font-weight:700">${getPct('cs')}</td></tr>`;
+    }).join('');
+}
+
+function switchTab(t) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
+    document.getElementById(t).classList.add('active');
+    if(t==='profile') document.querySelector('.nav-tab:nth-child(1)').classList.add('active');
+    if(t==='leaderboard') document.querySelector('.nav-tab:nth-child(2)').classList.add('active');
+    if(t==='yoy') document.querySelector('.nav-tab:nth-child(3)').classList.add('active');
+}
+
+init();
+</script>
+</body>
+</html>
