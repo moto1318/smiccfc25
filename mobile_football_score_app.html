@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Football Score Tracker</title>
+
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="data:application/json,{\"name\":\"Score Tracker\",\"short_name\":\"Scores\",\"display\":\"standalone\"}">
+
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,Arial;background:#0f172a;color:#f8fafc}
+.container{padding:8px}
+h2{margin:6px 0;text-align:center;font-size:16px;font-weight:600}
+
+.teams{display:flex;gap:6px}
+.team{flex:1;padding:8px;border-radius:14px;font-size:12px}
+.red{background:#7f1d1d}.blue{background:#1e3a8a}.black{background:#020617}
+.team input{width:100%;margin:3px 0;font-size:12px;border-radius:999px;border:none;padding:6px}
+
+.card{background:#020617;border-radius:16px;padding:6px;margin-top:6px}
+
+table{width:100%;border-collapse:collapse;font-size:11px}
+th,td{padding:4px;text-align:center}
+th{opacity:.8}
+
+.tap{background:#1e293b;border-radius:999px;font-size:18px;padding:12px}
+.clear{background:#7f1d1d;border-radius:999px;padding:10px;font-size:12px}
+
+.matches{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.match{background:#020617;padding:8px;border-radius:16px;text-align:center;font-size:12px}
+.score{display:inline-block;background:#1e293b;border-radius:999px;padding:10px 14px;font-size:18px;margin:2px}
+
+.results{font-size:12px;margin-top:6px;text-align:center}
+textarea{width:100%;height:140px;margin-top:6px;font-size:11px;border-radius:12px}
+
+button{width:100%;font-size:16px;padding:14px;border:none;border-radius:999px;margin-top:6px;background:#22c55e;color:#052e16;font-weight:600}
+.whatsapp{background:#25D366;color:#043f1e}
+</style>
+</head>
+<body>
+<div class="container">
+
+<h2>Teams</h2>
+<div class="teams">
+  <div class="team red"><b>Red</b>
+    <input value="Abdul Hye (c)">
+    <input value="Nabeel">
+    <input value="Rumel Bai">
+    <input value="Noor">
+    <input value="Shaki">
+  </div>
+  <div class="team blue"><b>Blue</b>
+    <input value="Mujib (c)">
+    <input value="Rezwan">
+    <input value="Mosh">
+    <input value="Jangir">
+    <input value="Shomeem">
+  </div>
+  <div class="team black"><b>Black</b>
+    <input value="Ikram (c)">
+    <input value="Sanwar">
+    <input value="Shuhel">
+    <input value="Alim">
+    <input value="Zaff">
+  </div>
+</div>
+
+<div class="card">
+<h2>Player Stats</h2>
+<table id="stats">
+<thead><tr><th>Player</th><th>⚽</th><th>🅰️</th><th>🧤</th><th>Total</th><th></th></tr></thead>
+<tbody></tbody>
+</table>
+</div>
+
+<div class="card">
+<h2>Match Scores</h2>
+<div class="matches" id="matches"></div>
+</div>
+
+<div class="results">
+<b>MOTM:</b> <span id="motm">-</span> &nbsp; | &nbsp;
+<b>Top Scorer:</b> <span id="topscorer">-</span>
+</div>
+
+<button onclick="generateCSV()">Generate / Copy CSV</button>
+<button class="whatsapp" onclick="shareWhatsApp()">Share via WhatsApp</button>
+<textarea id="csv"></textarea>
+
+</div>
+<script>
+const tbody=document.querySelector('#stats tbody');
+const teamInputs=[...document.querySelectorAll('.team input')];
+const matchBox=document.getElementById('matches');
+const csvBox=document.getElementById('csv');
+
+const matches=[
+ ['blue','red'],['blue','red'],
+ ['blue','black'],['blue','black'],
+ ['red','black'],['red','black']
+];
+let matchScores=matches.map(()=>[0,0]);
+let players=[];
+
+function build(){
+ players=[];tbody.innerHTML='';matchBox.innerHTML='';
+ teamInputs.forEach(i=>players.push({name:i.value,team:i.closest('.team').classList[1],g:0,a:0,c:0}));
+ players.forEach((p,i)=>{
+  const r=tbody.insertRow();
+  r.innerHTML=`<td>${p.name}</td>
+  <td class=tap onclick=add(${i},'g')>0</td>
+  <td class=tap onclick=add(${i},'a')>0</td>
+  <td class=tap onclick=add(${i},'c')>0</td>
+  <td>0</td>
+  <td class=clear onclick=clr(${i})>⟲</td>`;
+ });
+ matches.forEach((m,i)=>{
+  const d=document.createElement('div');d.className='match';
+  d.innerHTML=`${m[0]} vs ${m[1]}<br>
+  <span class=score onclick=ms(${i},0)>${matchScores[i][0]}</span>
+  <span class=score onclick=ms(${i},1)>${matchScores[i][1]}</span>
+  <div class=clear onclick=mc(${i})>clear</div>`;
+  matchBox.appendChild(d);
+ });
+ update();
+}
+
+function add(i,t){players[i][t]++;update()}
+function clr(i){players[i].g=players[i].a=players[i].c=0;update()}
+function ms(i,t){matchScores[i][t]++;build()}
+function mc(i){matchScores[i]=[0,0];build()}
+
+function update(){
+ [...tbody.rows].forEach((r,i)=>{
+  const p=players[i];
+  r.cells[1].innerText=p.g;
+  r.cells[2].innerText=p.a;
+  r.cells[3].innerText=p.c;
+  r.cells[4].innerText=p.g+p.a+p.c*3;
+ });
+ const maxPts=Math.max(...players.map(p=>p.g+p.a+p.c*3));
+ document.getElementById('motm').innerText=players.filter(p=>p.g+p.a+p.c*3===maxPts).map(p=>p.name).join(', ');
+ const maxG=Math.max(...players.map(p=>p.g));
+ document.getElementById('topscorer').innerText=players.filter(p=>p.g===maxG&&maxG>0).map(p=>p.name).join(', ');
+}
+
+function teamResults(team){
+ let out='';
+ matches.forEach((m,i)=>{
+  if(!m.includes(team))return;
+  const s=matchScores[i];
+  const ti=m[0]===team?0:1;
+  const oi=ti===0?1:0;
+  if(s[ti]>s[oi]) out+='W';
+  else if(s[ti]<s[oi]) out+='L';
+  else out+='D';
+ });
+ return out;
+}
+
+function generateCSV(){
+ const date=new Date().toISOString().slice(0,10);
+ let csv=`Date,${date}\nMOTM,${document.getElementById('motm').innerText}\nTop Scorer,${document.getElementById('topscorer').innerText}\n\n`;
+ csv+='Player,Team,Goals,Assists,CleanSheets,Points,Results\n';
+ players.forEach(p=>{
+  const res=teamResults(p.team);
+  csv+=`${p.name},${p.team},${p.g},${p.a},${p.c},${p.g+p.a+p.c*3},${res}\n`;
+ });
+ csvBox.value=csv;
+ csvBox.select();
+ document.execCommand('copy');
+}
+
+function shareWhatsApp(){
+ generateCSV();
+ const text=encodeURIComponent(csvBox.value);
+ window.open(`https://wa.me/?text=${text}`,'_blank');
+}
+
+teamInputs.forEach(i=>i.onchange=build);
+build();
+</script>
+</body>
+</html>
