@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>FOOTBALL SCORE TRACKER</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+
+<style>
+*{box-sizing:border-box;text-transform:uppercase}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,Arial;background:#f8fafc;color:#0f172a}
+.container{padding:8px}
+h2{margin:6px 0;text-align:center;font-size:16px;font-weight:700}
+
+/* TEAMS */
+.teams{display:flex;gap:6px}
+.team{flex:1;padding:8px;border-radius:16px;font-size:12px;color:#fff}
+.red{background:#dc2626}.blue{background:#2563eb}.black{background:#111827}
+.team input{width:100%;margin:3px 0;font-size:12px;border-radius:999px;border:none;padding:6px;text-transform:uppercase}
+
+/* CARDS */
+.card{background:#ffffff;border-radius:20px;padding:6px;margin-top:8px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+
+/* TABLE */
+table{width:100%;border-collapse:collapse;font-size:11px}
+th,td{padding:4px;text-align:center}
+th{opacity:.7}
+
+.player-chip{display:inline-flex;align-items:center;justify-content:center;width:110px;height:32px;border-radius:999px;font-weight:600;font-size:11px}
+.player-chip.red{background:#fee2e2;color:#991b1b}
+.player-chip.blue{background:#dbeafe;color:#1e40af}
+.player-chip.black{background:#e5e7eb;color:#111827}
+
+.tap,.total,.score,.team-circle{width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center;border-radius:999px;font-size:16px;background:#e5e7eb;transition:.15s}
+.tap.active,.score.active,.total.active{background:#bbf7d0;color:#065f46}
+
+.clear{background:#f1f5f9;border-radius:999px;padding:8px 12px;font-size:11px;color:#334155}
+
+/* MATCHES */
+.matches{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.match{background:#f1f5f9;padding:8px;border-radius:20px;text-align:center;font-size:12px}
+
+.team-circle.red{background:#dc2626;color:#fff}
+.team-circle.blue{background:#2563eb;color:#fff}
+.team-circle.black{background:#111827;color:#fff}
+
+.order{margin-bottom:4px;font-weight:700}
+
+/* RESULTS */
+.results{font-size:13px;margin-top:8px;text-align:center;min-height:36px}
+textarea{width:100%;height:160px;margin-top:8px;font-size:11px;border-radius:12px;padding:6px}
+
+button{width:100%;font-size:16px;padding:14px;border:none;border-radius:999px;margin-top:8px;background:#22c55e;color:#052e16;font-weight:700}
+.whatsapp{background:#25D366;color:#043f1e}
+</style>
+</head>
+<body>
+<div class="container">
+
+<h2>TEAMS</h2>
+<div class="teams">
+  <div class="team red"><b>RED</b>
+    <input value="ABDUL HYE (C)"><input value="NABEEL"><input value="RUMEL BAI"><input value="NOOR"><input value="SHAKI">
+  </div>
+  <div class="team blue"><b>BLUE</b>
+    <input value="MUJIB (C)"><input value="REZWAN"><input value="MOSH"><input value="JANGIR"><input value="SHOMEEM">
+  </div>
+  <div class="team black"><b>BLACK</b>
+    <input value="IKRAM (C)"><input value="SANWAR"><input value="SHUHEL"><input value="ALIM"><input value="ZAFF">
+  </div>
+</div>
+
+<div class="card">
+<h2>PLAYER STATS</h2>
+<table id="stats">
+<thead><tr><th>PLAYER</th><th>⚽</th><th>🅰️</th><th>🧤</th><th>TOTAL</th><th></th></tr></thead>
+<tbody></tbody>
+</table>
+</div>
+
+<div class="card">
+<h2>MATCH SCORES</h2>
+<div class="matches" id="matches"></div>
+</div>
+
+<div class="results">
+<b>MOTM:</b> <span id="motm"></span><br>
+<b>TOP SCORER:</b> <span id="topscorer"></span>
+</div>
+
+<button onclick="generateCSV()">GENERATE / COPY CSV</button>
+<button onclick="downloadCSV()">DOWNLOAD CSV</button>
+<button class="whatsapp" onclick="shareWhatsApp()">SHARE VIA WHATSAPP</button>
+<textarea id="csv"></textarea>
+
+</div>
+<script>
+const tbody=document.querySelector('#stats tbody');
+const teamInputs=[...document.querySelectorAll('.team input')];
+const matchBox=document.getElementById('matches');
+const csvBox=document.getElementById('csv');
+
+const matches=[['blue','red'],['blue','red'],['blue','black'],['blue','black'],['red','black'],['red','black']];
+let matchScores=matches.map(()=>[0,0]);
+let players=[];
+
+function build(){
+ players=[];tbody.innerHTML='';matchBox.innerHTML='';
+ teamInputs.forEach(i=>players.push({name:i.value.toUpperCase(),team:i.closest('.team').classList[1],g:0,a:0,c:0}));
+ players.forEach((p,i)=>{
+  const r=tbody.insertRow();
+  r.innerHTML=`<td><span class='player-chip ${p.team}'>${p.name}</span></td>
+  <td class='tap'>0</td>
+  <td class='tap'>0</td>
+  <td class='tap'>0</td>
+  <td class='total'>0</td>
+  <td class='clear'>CLEAR</td>`;
+  r.cells[1].onclick=()=>add(i,'g',r.cells[1]);
+  r.cells[2].onclick=()=>add(i,'a',r.cells[2]);
+  r.cells[3].onclick=()=>add(i,'c',r.cells[3]);
+  r.cells[5].onclick=()=>clr(i,r);
+ });
+ matches.forEach((m,i)=>{
+  const d=document.createElement('div');d.className='match';
+  d.innerHTML=`<div class='order'>MATCH ${i+1}</div>
+  <span class='team-circle ${m[0]}'>${m[0][0].toUpperCase()}</span>
+  <span class='team-circle ${m[1]}'>${m[1][0].toUpperCase()}</span><br>
+  <span class='score'>${matchScores[i][0]}</span>
+  <span class='score'>${matchScores[i][1]}</span>
+  <div class='clear'>CLEAR</div>`;
+  const scores=d.querySelectorAll('.score');
+  scores[0].onclick=()=>ms(i,0,scores[0]);
+  scores[1].onclick=()=>ms(i,1,scores[1]);
+  d.querySelector('.clear').onclick=()=>mc(i);
+  matchBox.appendChild(d);
+ });
+ update();
+}
+
+function add(i,t,el){players[i][t]++;el.innerText=players[i][t];el.classList.toggle('active',players[i][t]>=1);update()}
+function clr(i,row){players[i].g=players[i].a=players[i].c=0;[1,2,3,4].forEach(c=>{row.cells[c].innerText=0;row.cells[c].classList.remove('active')});update()}
+function ms(i,t,el){matchScores[i][t]++;el.innerText=matchScores[i][t];el.classList.toggle('active',matchScores[i][t]>=1);update()}
+function mc(i){matchScores[i]=[0,0];build()}
+
+function update(){
+ let anyPoints=false;
+ [...tbody.rows].forEach((r,i)=>{
+  const p=players[i];
+  const total=p.g+p.a+p.c*3;
+  r.cells[4].innerText=total;
+  r.cells[4].classList.toggle('active',total>=1);
+  if(total>0) anyPoints=true;
+ });
+ if(!anyPoints){document.getElementById('motm').innerText='';document.getElementById('topscorer').innerText='';return}
+ const maxPts=Math.max(...players.map(p=>p.g+p.a+p.c*3));
+ document.getElementById('motm').innerText=players.filter(p=>p.g+p.a+p.c*3===maxPts).map(p=>`${p.name} (${p.g+p.a+p.c*3})`).join(', ');
+ const maxG=Math.max(...players.map(p=>p.g));
+ document.getElementById('topscorer').innerText=players.filter(p=>p.g===maxG&&maxG>0).map(p=>`${p.name} (${p.g})`).join(', ');
+}
+
+function teamResults(team){
+ let out='';
+ matches.forEach((m,i)=>{
+  if(!m.includes(team))return;
+  const s=matchScores[i];
+  const ti=m[0]===team?0:1;
+  const oi=ti===0?1:0;
+  out+=s[ti]>s[oi]?'W':s[ti]<s[oi]?'L':'D';
+ });
+ return out;
+}
+
+function generateCSV(){
+ const date=new Date().toISOString().slice(0,10);
+ let csv=`DATE,${date}\nMOTM,${document.getElementById('motm').innerText}\nTOP SCORER,${document.getElementById('topscorer').innerText}\n\n`;
+ ['red','blue','black'].forEach(team=>{
+  csv+=team.toUpperCase()+" TEAM\n";
+  players.filter(p=>p.team===team).forEach(p=>{
+   csv+=`${p.name},${p.team},${p.g},${p.a},${p.c},${p.g+p.a+p.c*3},${teamResults(team)}\n`;
+  });
+  csv+='\n';
+ });
+ csvBox.value=csv;
+ csvBox.select();
+ document.execCommand('copy');
+}
+
+function downloadCSV(){
+ generateCSV();
+ const a=document.createElement('a');
+ a.href=URL.createObjectURL(new Blob([csvBox.value],{type:'text/csv'}));
+ a.download='MATCH_STATS.csv';
+ a.click();
+}
+
+function shareWhatsApp(){generateCSV();window.open('https://wa.me/?text='+encodeURIComponent(csvBox.value),'_blank')}
+
+teamInputs.forEach(i=>i.onchange=build);
+build();
+</script>
+</body>
+</html>
