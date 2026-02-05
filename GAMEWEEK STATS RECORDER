@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Football Score Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+```
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #f5f5f5;
+        padding: 10px;
+        font-size: 14px;
+        max-width: 100vw;
+        overflow-x: hidden;
+    }
+    
+    .container {
+        max-width: 430px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 12px;
+        padding: 15px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    h1 {
+        text-align: center;
+        color: #333;
+        margin-bottom: 15px;
+        font-size: 20px;
+    }
+    
+    /* Team Rosters */
+    .teams-section {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 6px;
+        margin-bottom: 15px;
+    }
+    
+    .team-box {
+        border-radius: 8px;
+        padding: 8px;
+        color: white;
+    }
+    
+    .team-box.red { background: linear-gradient(135deg, #dc2626, #991b1b); }
+    .team-box.blue { background: linear-gradient(135deg, #2563eb, #1e40af); }
+    .team-box.black { background: linear-gradient(135deg, #374151, #1f2937); }
+    
+    .team-box h3 {
+        font-size: 13px;
+        margin-bottom: 6px;
+        text-align: center;
+        font-weight: bold;
+    }
+    
+    .team-box input {
+        width: 100%;
+        padding: 4px;
+        margin: 2px 0;
+        border: none;
+        border-radius: 3px;
+        font-size: 11px;
+        background: rgba(255,255,255,0.9);
+        text-transform: uppercase;
+    }
+    
+    /* Gameweek */
+    .gameweek-section {
+        margin-bottom: 15px;
+        text-align: center;
+    }
+    
+    .gameweek-section label {
+        font-weight: bold;
+        margin-right: 10px;
+    }
+    
+    .gameweek-section input {
+        padding: 8px 15px;
+        border: 2px solid #ddd;
+        border-radius: 6px;
+        font-size: 16px;
+        width: 80px;
+        text-align: center;
+    }
+    
+    /* Matches */
+    .matches-section {
+        margin-bottom: 15px;
+    }
+    
+    .matches-section h2 {
+        font-size: 16px;
+        margin-bottom: 8px;
+        color: #333;
+    }
+    
+    .match {
+        background: #f9fafb;
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 8px;
+        border: 2px solid #e5e7eb;
+    }
+    
+    .match-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+    
+    .match-title {
+        font-weight: bold;
+        font-size: 13px;
+    }
+    
+    .match-title .team-label {
+        padding: 2px 6px;
+        border-radius: 3px;
+        color: white;
+        font-size: 11px;
+    }
+    
+    .match-title .team-label.red { background: #dc2626; }
+    .match-title .team-label.blue { background: #2563eb; }
+    .match-title .team-label.black { background: #1f2937; }
+    
+    .match-controls {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .match-order {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 11px;
+    }
+    
+    .match-order label {
+        font-size: 11px;
+        color: #666;
+    }
+    
+    .match-order select {
+        padding: 4px 8px;
+        border-radius: 4px;
+        border: 1px solid #ddd;
+        font-size: 12px;
+        font-weight: bold;
+    }
+    
+    .match-score {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        gap: 10px;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+    
+    .team-score {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+    
+    .team-name {
+        font-size: 13px;
+        font-weight: bold;
+        text-align: center;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 6px;
+    }
+    
+    .team-name.red { background: #dc2626; }
+    .team-name.blue { background: #2563eb; }
+    .team-name.black { background: #1f2937; }
+    
+    .score-box {
+        background: white;
+        border: 2px solid #ddd;
+        border-radius: 8px;
+        padding: 15px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        min-height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .score-box:active {
+        background: #f3f4f6;
+        transform: scale(0.98);
+    }
+    
+    .score-display {
+        font-size: 32px;
+        font-weight: bold;
+        color: #1f2937;
+    }
+    
+    .vs {
+        font-size: 16px;
+        font-weight: bold;
+        color: #666;
+        text-align: center;
+    }
+    
+    .score-btn.reset {
+        background: #e5e7eb;
+        color: #1f2937;
+        font-size: 11px;
+        padding: 6px 12px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: bold;
+    }
+    
+    .score-btn.reset:active {
+        background: #d1d5db;
+    }
+    
+    /* Stats Table */
+    .stats-section {
+        margin-bottom: 20px;
+        overflow-x: auto;
+    }
+    
+    .stats-section h2 {
+        font-size: 18px;
+        margin-bottom: 10px;
+        color: #333;
+    }
+    
+    .stats-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 11px;
+    }
+    
+    .stats-table th {
+        background: #1f2937;
+        color: white;
+        padding: 8px 4px;
+        text-align: center;
+        position: sticky;
+        top: 0;
+        font-size: 10px;
+    }
+    
+    .stats-table td {
+        padding: 6px 4px;
+        text-align: center;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .stats-table tr:hover {
+        background: #f9fafb;
+    }
+    
+    .player-name {
+        text-align: left !important;
+        font-weight: bold;
+        max-width: 80px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        padding: 6px 8px !important;
+        border-radius: 4px;
+    }
+    
+    .player-name.red-bg {
+        background: rgba(220, 38, 38, 0.15);
+        color: #991b1b;
+    }
+    
+    .player-name.blue-bg {
+        background: rgba(37, 99, 235, 0.15);
+        color: #1e40af;
+    }
+    
+    .player-name.black-bg {
+        background: rgba(55, 65, 81, 0.15);
+        color: #1f2937;
+    }
+    
+    .stat-btn {
+        background: #f97316;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 6px 10px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: bold;
+        min-width: 35px;
+    }
+    
+    .stat-btn.has-value {
+        background: #059669;
+    }
+    
+    .stat-btn:active {
+        opacity: 0.8;
+    }
+    
+    .clear-btn {
+        background: #ef4444;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 4px 8px;
+        cursor: pointer;
+        font-size: 10px;
+    }
+    
+    .team-red { color: #dc2626; }
+    .team-blue { color: #2563eb; }
+    .team-black { color: #1f2937; }
+    
+    /* Awards */
+    .awards-section {
+        background: #fef3c7;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 20px;
+        border: 2px solid #fbbf24;
+    }
+    
+    .awards-section h2 {
+        font-size: 18px;
+        margin-bottom: 10px;
+        color: #92400e;
+    }
+    
+    .award {
+        margin: 8px 0;
+        font-size: 14px;
+    }
+    
+    .award strong {
+        color: #92400e;
+    }
+    
+    /* Export Buttons */
+    .export-section {
+        display: grid;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+    
+    .export-btn {
+        padding: 12px;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        color: white;
+    }
+    
+    .export-btn.summary {
+        background: #f59e0b;
+    }
+    
+    .export-btn.whatsapp {
+        background: #25D366;
+    }
+    
+    .export-btn.csv {
+        background: #059669;
+    }
+    
+    .export-btn.copy {
+        background: #8b5cf6;
+    }
+    
+    .export-btn:active {
+        opacity: 0.8;
+    }
+    
+    /* Toast notification */
+    .toast {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #1f2937;
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-size: 14px;
+        opacity: 0;
+        transition: opacity 0.3s;
+        z-index: 1000;
+    }
+    
+    .toast.show {
+        opacity: 1;
+    }
+</style>
+```
+
+</head>
+<body>
+    <div class="container">
+        <h1>⚽ Football Score Tracker</h1>
+
+```
+    <!-- Team Rosters -->
+    <div class="teams-section">
+        <div class="team-box red">
+            <h3>Red Team</h3>
+            <input type="text" class="player-input" data-team="red" data-index="0" value="ABDUL HYE">
+            <input type="text" class="player-input" data-team="red" data-index="1" value="NABEEL">
+            <input type="text" class="player-input" data-team="red" data-index="2" value="RUMEL BAI">
+            <input type="text" class="player-input" data-team="red" data-index="3" value="NOOR">
+            <input type="text" class="player-input" data-team="red" data-index="4" value="SHAKI">
+        </div>
+        
+        <div class="team-box blue">
+            <h3>Blue Team</h3>
+            <input type="text" class="player-input" data-team="blue" data-index="0" value="MUJIB">
+            <input type="text" class="player-input" data-team="blue" data-index="1" value="REZWAN">
+            <input type="text" class="player-input" data-team="blue" data-index="2" value="MOSH">
+            <input type="text" class="player-input" data-team="blue" data-index="3" value="JANGIR">
+            <input type="text" class="player-input" data-team="blue" data-index="4" value="SHOMEEM">
+        </div>
+        
+        <div class="team-box black">
+            <h3>Black Team</h3>
+            <input type="text" class="player-input" data-team="black" data-index="0" value="IKRAM">
+            <input type="text" class="player-input" data-team="black" data-index="1" value="SANWAR">
+            <input type="text" class="player-input" data-team="black" data-index="2" value="SHUHEL">
+            <input type="text" class="player-input" data-team="black" data-index="3" value="ALIM">
+            <input type="text" class="player-input" data-team="black" data-index="4" value="ZAFF">
+        </div>
+    </div>
+    
+    <!-- Gameweek -->
+    <div class="gameweek-section">
+        <label for="gameweek">Gameweek:</label>
+        <input type="number" id="gameweek" value="1" min="1">
+    </div>
+    
+    <!-- Matches -->
+    <div class="matches-section">
+        <h2>Match Scores</h2>
+        
+        <div class="match" data-match="0">
+            <div class="match-header">
+                <button class="score-btn reset" onclick="resetMatch(0)">Reset</button>
+                <div class="match-order">
+                    <label>Match:</label>
+                    <select class="match-order-select">
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5">5</option>
+                        <option value="6">6</option>
+                    </select>
+                </div>
+            </div>
+            <div class="match-score">
+                <div class="team-score">
+                    <div class="team-name blue">Blue</div>
+                    <div class="score-box" onclick="incrementScore(0, 'blue')">
+                        <div class="score-display" data-team="blue">0</div>
+                    </div>
+                </div>
+                <div class="vs">vs</div>
+                <div class="team-score">
+                    <div class="team-name red">Red</div>
+                    <div class="score-box" onclick="incrementScore(0, 'red')">
+                        <div class="score-display" data-team="red">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="match" data-match="1">
+            <div class="match-header">
+                <button class="score-btn reset" onclick="resetMatch(1)">Reset</button>
+                <div class="match-order">
+                    <label>Match:</label>
+                    <select class="match-order-select">
+                        <option value="1">1</option>
+                        <option value="2" selected>2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5">5</option>
+                        <option value="6">6</option>
+                    </select>
+                </div>
+            </div>
+            <div class="match-score">
+                <div class="team-score">
+                    <div class="team-name blue">Blue</div>
+                    <div class="score-box" onclick="incrementScore(1, 'blue')">
+                        <div class="score-display" data-team="blue">0</div>
+                    </div>
+                </div>
+                <div class="vs">vs</div>
+                <div class="team-score">
+                    <div class="team-name red">Red</div>
+                    <div class="score-box" onclick="incrementScore(1, 'red')">
+                        <div class="score-display" data-team="red">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="match" data-match="2">
+            <div class="match-header">
+                <button class="score-btn reset" onclick="resetMatch(2)">Reset</button>
+                <div class="match-order">
+                    <label>Match:</label>
+                    <select class="match-order-select">
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3" selected>3</option>
+                        <option value="4">4</option>
+                        <option value="5">5</option>
+                        <option value="6">6</option>
+                    </select>
+                </div>
+            </div>
+            <div class="match-score">
+                <div class="team-score">
+                    <div class="team-name blue">Blue</div>
+                    <div class="score-box" onclick="incrementScore(2, 'blue')">
+                        <div class="score-display" data-team="blue">0</div>
+                    </div>
+                </div>
+                <div class="vs">vs</div>
+                <div class="team-score">
+                    <div class="team-name black">Black</div>
+                    <div class="score-box" onclick="incrementScore(2, 'black')">
+                        <div class="score-display" data-team="black">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="match" data-match="3">
+            <div class="match-header">
+                <button class="score-btn reset" onclick="resetMatch(3)">Reset</button>
+                <div class="match-order">
+                    <label>Match:</label>
+                    <select class="match-order-select">
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4" selected>4</option>
+                        <option value="5">5</option>
+                        <option value="6">6</option>
+                    </select>
+                </div>
+            </div>
+            <div class="match-score">
+                <div class="team-score">
+                    <div class="team-name blue">Blue</div>
+                    <div class="score-box" onclick="incrementScore(3, 'blue')">
+                        <div class="score-display" data-team="blue">0</div>
+                    </div>
+                </div>
+                <div class="vs">vs</div>
+                <div class="team-score">
+                    <div class="team-name black">Black</div>
+                    <div class="score-box" onclick="incrementScore(3, 'black')">
+                        <div class="score-display" data-team="black">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="match" data-match="4">
+            <div class="match-header">
+                <button class="score-btn reset" onclick="resetMatch(4)">Reset</button>
+                <div class="match-order">
+                    <label>Match:</label>
+                    <select class="match-order-select">
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5" selected>5</option>
+                        <option value="6">6</option>
+                    </select>
+                </div>
+            </div>
+            <div class="match-score">
+                <div class="team-score">
+                    <div class="team-name red">Red</div>
+                    <div class="score-box" onclick="incrementScore(4, 'red')">
+                        <div class="score-display" data-team="red">0</div>
+                    </div>
+                </div>
+                <div class="vs">vs</div>
+                <div class="team-score">
+                    <div class="team-name black">Black</div>
+                    <div class="score-box" onclick="incrementScore(4, 'black')">
+                        <div class="score-display" data-team="black">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="match" data-match="5">
+            <div class="match-header">
+                <button class="score-btn reset" onclick="resetMatch(5)">Reset</button>
+                <div class="match-order">
+                    <label>Match:</label>
+                    <select class="match-order-select">
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5">5</option>
+                        <option value="6" selected>6</option>
+                    </select>
+                </div>
+            </div>
+            <div class="match-score">
+                <div class="team-score">
+                    <div class="team-name red">Red</div>
+                    <div class="score-box" onclick="incrementScore(5, 'red')">
+                        <div class="score-display" data-team="red">0</div>
+                    </div>
+                </div>
+                <div class="vs">vs</div>
+                <div class="team-score">
+                    <div class="team-name black">Black</div>
+                    <div class="score-box" onclick="incrementScore(5, 'black')">
+                        <div class="score-display" data-team="black">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Stats Table -->
+    <div class="stats-section">
+        <h2>Player Statistics</h2>
+        <table class="stats-table">
+            <thead>
+                <tr>
+                    <th>Player</th>
+                    <th>G</th>
+                    <th>A</th>
+                    <th>CS</th>
+                    <th>Total</th>
+                    <th>Results</th>
+                    <th>Clear</th>
+                </tr>
+            </thead>
+            <tbody id="statsTableBody">
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Awards -->
+    <div class="awards-section">
+        <h2>🏆 Awards</h2>
+        <div class="award">
+            <strong>Man of the Match:</strong> <span id="motm">-</span>
+        </div>
+        <div class="award">
+            <strong>Top Scorer:</strong> <span id="topScorer">-</span>
+        </div>
+    </div>
+    
+    <!-- Export -->
+    <div class="export-section">
+        <button class="export-btn summary" onclick="copySummary()">📋 Copy Summary</button>
+        <button class="export-btn whatsapp" onclick="shareSummaryWhatsApp()">💬 Share Summary to WhatsApp</button>
+        <button class="export-btn copy" onclick="copyToClipboard()">📋 Copy Full Stats</button>
+        <button class="export-btn csv" onclick="downloadCSV()">📥 Download CSV</button>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+    // Data structure
+    const teams = {
+        red: ['ABDUL HYE', 'NABEEL', 'RUMEL BAI', 'NOOR', 'SHAKI'],
+        blue: ['MUJIB', 'REZWAN', 'MOSH', 'JANGIR', 'SHOMEEM'],
+        black: ['IKRAM', 'SANWAR', 'SHUHEL', 'ALIM', 'ZAFF']
+    };
+    
+    const matches = [
+        { teams: ['blue', 'red'], scores: [0, 0] },
+        { teams: ['blue', 'red'], scores: [0, 0] },
+        { teams: ['blue', 'black'], scores: [0, 0] },
+        { teams: ['blue', 'black'], scores: [0, 0] },
+        { teams: ['red', 'black'], scores: [0, 0] },
+        { teams: ['red', 'black'], scores: [0, 0] }
+    ];
+    
+    const playerStats = {};
+    
+    // Initialize player stats
+    function initializeStats() {
+        ['red', 'blue', 'black'].forEach(team => {
+            teams[team].forEach(player => {
+                playerStats[player] = {
+                    team: team,
+                    goals: 0,
+                    assists: 0,
+                    cleanSheets: 0
+                };
+            });
+        });
+    }
+    
+    // Update player names
+    document.querySelectorAll('.player-input').forEach(input => {
+        input.addEventListener('change', function() {
+            const team = this.dataset.team;
+            const index = parseInt(this.dataset.index);
+            const oldName = teams[team][index];
+            const newName = this.value.toUpperCase();
+            
+            // Update the input value to uppercase
+            this.value = newName;
+            
+            if (oldName !== newName) {
+                // Update team array
+                teams[team][index] = newName;
+                
+                // Update stats
+                if (playerStats[oldName]) {
+                    playerStats[newName] = playerStats[oldName];
+                    delete playerStats[oldName];
+                }
+                
+                updateStatsTable();
+            }
+        });
+    });
+    
+    // Match scoring
+    function incrementScore(matchIndex, team) {
+        const match = document.querySelectorAll('.match')[matchIndex];
+        const scoreDisplay = match.querySelector(`.score-display[data-team="${team}"]`);
+        const teamIndex = matches[matchIndex].teams.indexOf(team);
+        
+        matches[matchIndex].scores[teamIndex]++;
+        scoreDisplay.textContent = matches[matchIndex].scores[teamIndex];
+        
+        updateStatsTable();
+    }
+    
+    function resetMatch(matchIndex) {
+        const match = document.querySelectorAll('.match')[matchIndex];
+        const scoreDisplays = match.querySelectorAll('.score-display');
+        
+        matches[matchIndex].scores = [0, 0];
+        scoreDisplays.forEach(display => {
+            display.textContent = '0';
+        });
+        
+        updateStatsTable();
+    }
+    
+    // Player stats
+    function incrementStat(player, stat) {
+        playerStats[player][stat]++;
+        updateStatsTable();
+    }
+    
+    function clearPlayerStats(player) {
+        playerStats[player].goals = 0;
+        playerStats[player].assists = 0;
+        playerStats[player].cleanSheets = 0;
+        updateStatsTable();
+    }
+    
+    function calculateTotal(player) {
+        const stats = playerStats[player];
+        return stats.goals + stats.assists + (stats.cleanSheets * 3);
+    }
+    
+    function getMatchResults(team) {
+        // Get match order
+        const orderSelects = document.querySelectorAll('.match-order-select');
+        const matchesWithOrder = matches.map((match, index) => ({
+            ...match,
+            order: parseInt(orderSelects[index].value),
+            index: index
+        }));
+        
+        // Sort by order
+        matchesWithOrder.sort((a, b) => a.order - b.order);
+        
+        // Calculate results
+        const results = [];
+        matchesWithOrder.forEach(match => {
+            const teamIndex = match.teams.indexOf(team);
+            if (teamIndex !== -1) {
+                const opponentIndex = teamIndex === 0 ? 1 : 0;
+                const teamScore = match.scores[teamIndex];
+                const opponentScore = match.scores[opponentIndex];
+                
+                if (teamScore > opponentScore) {
+                    results.push('W');
+                } else if (teamScore < opponentScore) {
+                    results.push('L');
+                } else {
+                    results.push('D');
+                }
+            }
+        });
+        
+        return results.join('');
+    }
+    
+    function updateStatsTable() {
+        const tbody = document.getElementById('statsTableBody');
+        tbody.innerHTML = '';
+        
+        ['red', 'blue', 'black'].forEach(team => {
+            teams[team].forEach(player => {
+                const stats = playerStats[player];
+                const total = calculateTotal(player);
+                const results = getMatchResults(team);
+                
+                const goalClass = stats.goals > 0 ? 'has-value' : '';
+                const assistClass = stats.assists > 0 ? 'has-value' : '';
+                const csClass = stats.cleanSheets > 0 ? 'has-value' : '';
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="player-name ${team}-bg">${player}</td>
+                    <td><button class="stat-btn ${goalClass}" onclick="incrementStat('${player}', 'goals')">${stats.goals}</button></td>
+                    <td><button class="stat-btn ${assistClass}" onclick="incrementStat('${player}', 'assists')">${stats.assists}</button></td>
+                    <td><button class="stat-btn ${csClass}" onclick="incrementStat('${player}', 'cleanSheets')">${stats.cleanSheets}</button></td>
+                    <td><strong>${total}</strong></td>
+                    <td><small>${results}</small></td>
+                    <td><button class="clear-btn" onclick="clearPlayerStats('${player}')">Clear</button></td>
+                `;
+                tbody.appendChild(row);
+            });
+        });
+        
+        updateAwards();
+    }
+    
+    function updateAwards() {
+        // MOTM
+        let maxPoints = -1;
+        let motmPlayers = [];
+        
+        Object.keys(playerStats).forEach(player => {
+            const total = calculateTotal(player);
+            if (total > maxPoints) {
+                maxPoints = total;
+                motmPlayers = [player];
+            } else if (total === maxPoints && total > 0) {
+                motmPlayers.push(player);
+            }
+        });
+        
+        document.getElementById('motm').textContent = motmPlayers.length > 0 ? 
+            `${motmPlayers.join(', ')} (${maxPoints} pts)` : '-';
+        
+        // Top Scorer
+        let maxGoals = -1;
+        let topScorers = [];
+        
+        Object.keys(playerStats).forEach(player => {
+            const goals = playerStats[player].goals;
+            if (goals > maxGoals) {
+                maxGoals = goals;
+                topScorers = [player];
+            } else if (goals === maxGoals && goals > 0) {
+                topScorers.push(player);
+            }
+        });
+        
+        document.getElementById('topScorer').textContent = topScorers.length > 0 ? 
+            `${topScorers.join(', ')} (${maxGoals} goals)` : '-';
+    }
+    
+    // Export functions
+    function getTeamPoints(team) {
+        let points = 0;
+        const results = getMatchResults(team);
+        
+        for (let char of results) {
+            if (char === 'W') points += 3;
+            else if (char === 'D') points += 1;
+        }
+        
+        return points;
+    }
+    
+    function generateSummary() {
+        const gameweek = document.getElementById('gameweek').value;
+        const date = new Date().toLocaleDateString('en-GB');
+        
+        // Get team results and points
+        const redResults = getMatchResults('red');
+        const blueResults = getMatchResults('blue');
+        const blackResults = getMatchResults('black');
+        
+        const redPoints = getTeamPoints('red');
+        const bluePoints = getTeamPoints('blue');
+        const blackPoints = getTeamPoints('black');
+        
+        // Get MOTM
+        let maxPoints = -1;
+        let motmPlayer = '-';
+        
+        Object.keys(playerStats).forEach(player => {
+            const total = calculateTotal(player);
+            if (total > maxPoints) {
+                maxPoints = total;
+                motmPlayer = player;
+            }
+        });
+        
+        // Get Top Scorer
+        let maxGoals = -1;
+        let topScorers = [];
+        
+        Object.keys(playerStats).forEach(player => {
+            const goals = playerStats[player].goals;
+            if (goals > maxGoals) {
+                maxGoals = goals;
+                topScorers = [player];
+            } else if (goals === maxGoals && goals > 0) {
+                topScorers.push(player);
+            }
+        });
+        
+        const topScorerText = topScorers.length > 0 ? 
+            `${topScorers.join(', ')} (${maxGoals} GOALS)` : '-';
+        
+        let summary = `GAMEWEEK ${gameweek}\n`;
+        summary += `${date}\n\n`;
+        summary += `POINTS THIS WEEK / OVERALL\n\n`;
+        summary += `Red: ${redResults} = ${redPoints} PTS / X PTS\n`;
+        summary += `Blue: ${blueResults} = ${bluePoints} PTS / X PTS\n`;
+        summary += `Black: ${blackResults} = ${blackPoints} PTS / X PTS\n\n`;
+        summary += `MOTM = ${motmPlayer.toUpperCase()} (${maxPoints} PTS)\n`;
+        summary += `TOP SCORER = ${topScorerText}`;
+        
+        return summary;
+    }
+    
+    function copySummary() {
+        const summary = generateSummary();
+        navigator.clipboard.writeText(summary).then(() => {
+            showToast('Summary copied to clipboard!');
+        });
+    }
+    
+    function shareSummaryWhatsApp() {
+        const summary = generateSummary();
+        const url = `https://wa.me/?text=${encodeURIComponent(summary)}`;
+        window.open(url, '_blank');
+    }
+    
+    function generateTextOutput() {
+        const gameweek = document.getElementById('gameweek').value;
+        const date = new Date().toLocaleDateString('en-GB');
+        
+        let output = `Date: ${date}\n`;
+        output += `Gameweek: ${gameweek}\n\n`;
+        output += `Name, G, A, CS, Total, Results\n`;
+        
+        ['red', 'blue', 'black'].forEach(team => {
+            teams[team].forEach(player => {
+                const stats = playerStats[player];
+                const total = calculateTotal(player);
+                const results = getMatchResults(team);
+                output += `${player}, ${stats.goals}, ${stats.assists}, ${stats.cleanSheets}, ${total}, ${results}\n`;
+            });
+        });
+        
+        output += `\n${document.getElementById('motm').textContent}\n`;
+        output += `${document.getElementById('topScorer').textContent}`;
+        
+        return output;
+    }
+    
+    function copyToClipboard() {
+        const text = generateTextOutput();
+        navigator.clipboard.writeText(text).then(() => {
+            showToast('Copied to clipboard!');
+        });
+    }
+    
+    function shareWhatsApp() {
+        const text = generateTextOutput();
+        const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+        window.open(url, '_blank');
+    }
+    
+    function downloadCSV() {
+        const gameweek = document.getElementById('gameweek').value;
+        const date = new Date().toLocaleDateString('en-GB');
+        
+        let csv = 'Date,Gameweek,Name,Goals,Assists,Clean Sheets,Total,Match Results\n';
+        
+        ['red', 'blue', 'black'].forEach(team => {
+            teams[team].forEach(player => {
+                const stats = playerStats[player];
+                const total = calculateTotal(player);
+                const results = getMatchResults(team);
+                csv += `${date},${gameweek},"${player}",${stats.goals},${stats.assists},${stats.cleanSheets},${total},${results}\n`;
+            });
+        });
+        
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `football-stats-gw${gameweek}-${date.replace(/\//g, '-')}.csv`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+        
+        showToast('CSV downloaded!');
+    }
+    
+    function showToast(message) {
+        const toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.classList.add('show');
+        setTimeout(() => {
+            toast.classList.remove('show');
+        }, 2000);
+    }
+    
+    // Initialize
+    initializeStats();
+    updateStatsTable();
+</script>
+```
+
+</body>
+</html>
